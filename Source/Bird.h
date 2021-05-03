@@ -33,7 +33,6 @@ public:
         xVelocity = (float(rand()) / RAND_MAX) - 0.5f;
         yVelocity = (float(rand()) / RAND_MAX) - 0.5f;
         setVelocity(p->defaultVelocity);
-
     }
 
     void disconnect()
@@ -77,9 +76,8 @@ public:
         birdMap->at(yMapIndex).at(xMapIndex) = this;
     }
 
-    void updatePosition()
+    void updateVelocity()
     {
-
         float averageX = 0.0f;
         float averageY = 0.0f;
 
@@ -107,7 +105,7 @@ public:
                     for (int xInd = -1; xInd < 2; xInd++)
                     {
                         const int thisXPos = (xMapIndex + xInd);
-                        
+
                         if (thisXPos > -1 && thisXPos < p->xNumSpots)
                         {
                             Bird* b = birdMap->at(thisYPos).at(thisXPos);
@@ -157,7 +155,7 @@ public:
                                                 {
                                                     newHue -= 1.0f;
                                                 }
-                                                
+
                                                 color = juce::Colour(newHue, 1.0f, 1.0f, 1.0f);
                                             }
 
@@ -239,11 +237,6 @@ public:
                 }
             }
         }
-
-
-        
-
-
         // Finally we normalize the velocity to the value determined by the speed slider
         float newVel = p->moddedVelocity;
         setVelocity(abs(newVel));
@@ -262,9 +255,15 @@ public:
             color = color.withRotatedHue(p->moddedColor * 0.1f);
         }
 
+        xVelocitySaved = xVelocity;
+        yVelocitySaved = yVelocity;
+    }
 
-
+    void updatePosition()
+    {
         // Update the bird position
+        const float birdXVel = xVelocitySaved;
+        const float birdYVel = yVelocitySaved;
         xPos += birdXVel;
         yPos += birdYVel;
 
@@ -438,5 +437,7 @@ private:
     std::vector<Bird>* birds = nullptr;
     std::vector<std::vector<Bird*>>* birdMap = nullptr;
     std::vector<std::vector<int>>* birdMapCount = nullptr;
+    float xVelocitySaved = 0.0f;
+    float yVelocitySaved = 0.0f;
     parameters* p;
 };

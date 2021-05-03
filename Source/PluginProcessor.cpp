@@ -24,7 +24,7 @@ NewProjectAudioProcessor::NewProjectAudioProcessor()
 {
     for (int i = 0; i < p.maxNumBirds; i++)
     {
-        birds.push_back(Bird(birds.size(), &p, &birds, &birdMap, &birdMapCount));
+        birds.emplace_back(birds.size(), &p, &birds, &birdMap, &birdMapCount);
     }
 }
 

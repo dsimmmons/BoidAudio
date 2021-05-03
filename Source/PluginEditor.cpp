@@ -10,7 +10,7 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-NewProjectAudioProcessorEditor::NewProjectAudioProcessorEditor (NewProjectAudioProcessor& p) : AudioProcessorEditor (&p), audioProcessor (p), c(p.p)
+NewProjectAudioProcessorEditor::NewProjectAudioProcessorEditor (NewProjectAudioProcessor& p) : AudioProcessorEditor (&p), audioProcessor (p), c(p.p), Thread("Velocity Update Thread")
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -22,17 +22,35 @@ NewProjectAudioProcessorEditor::NewProjectAudioProcessorEditor (NewProjectAudioP
     setSize(800 * 1.2f, 800 * 1.2f);
 
     setResizable(true, true);
+    startThread();
 }
 
 NewProjectAudioProcessorEditor::~NewProjectAudioProcessorEditor()
 {
+    stopThread(500);
     stopTimer();
+}
+
+void NewProjectAudioProcessorEditor::run() 
+{
+    while (!threadShouldExit())
+    {
+        {
+            ScopedLock scopedLock(lock);
+            for (int i = 0; i < audioProcessor.birds.size(); i++)
+            {
+                audioProcessor.birds[i].updateVelocity();
+            }
+        }
+        wait(50);
+    }
 }
 
 void NewProjectAudioProcessorEditor::timerCallback()
 {
     // This timer callback is used to repaint the screen
     audioProcessor.getParam()->updateBirdPosition = true;
+    ScopedLock scopedLock(lock);
     repaint();
 }
 
@@ -53,7 +71,7 @@ void NewProjectAudioProcessorEditor::paint (juce::Graphics& g)
     }
     while (audioProcessor.birds.size() < audioProcessor.p.numBirds)
     {
-        audioProcessor.birds.push_back(Bird(audioProcessor.birds.size(), &audioProcessor.p, &audioProcessor.birds, &audioProcessor.birdMap, &audioProcessor.birdMapCount));
+        audioProcessor.birds.emplace_back(audioProcessor.birds.size(), &audioProcessor.p, &audioProcessor.birds, &audioProcessor.birdMap, &audioProcessor.birdMapCount);
     }
 
     if (audioProcessor.p.updateBirdMapNum)
@@ -101,6 +119,8 @@ void NewProjectAudioProcessorEditor::paint (juce::Graphics& g)
 
 void NewProjectAudioProcessorEditor::resized()
 {
+    const int width = getWidth();
+    setSize(width, width);
     c.setBoundsRelative(0.0f, 0.0f, 1.0f, 1.0f);
 }
 

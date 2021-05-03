@@ -9,17 +9,20 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <unordered_map>
 #include "PluginProcessor.h"
 #include "Controls.h"
 
 //==============================================================================
 /**
 */
-class NewProjectAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Timer, public juce::FileDragAndDropTarget
+
+class NewProjectAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Timer, public juce::FileDragAndDropTarget, public juce::Thread
 {
 public:
     NewProjectAudioProcessorEditor (NewProjectAudioProcessor&);
     ~NewProjectAudioProcessorEditor() override;
+    void run() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -43,9 +46,9 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
 
-    void drawNextLineOfSpectrogram();
-
     Controls c;
+
+    CriticalSection lock;
 
     NewProjectAudioProcessor& audioProcessor;
 
