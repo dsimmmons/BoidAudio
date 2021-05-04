@@ -14,7 +14,7 @@ NewProjectAudioProcessorEditor::NewProjectAudioProcessorEditor (NewProjectAudioP
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    startTimerHz(30);
+    startTimerHz(60);
     setWantsKeyboardFocus(true);
 
     addAndMakeVisible(c);
@@ -36,10 +36,49 @@ void NewProjectAudioProcessorEditor::run()
     while (!threadShouldExit())
     {
         {
-            ScopedLock scopedLock(lock);
+            ScopedLock lk(lock);
             for (int i = 0; i < audioProcessor.birds.size(); i++)
             {
                 audioProcessor.birds[i].updateVelocity();
+            }
+            // Update the number of birds if the Num Birds Slider has been changed
+            while (audioProcessor.birds.size() > audioProcessor.p.numBirds)
+            {
+                audioProcessor.birds[audioProcessor.birds.size() - 1].disconnect();
+                audioProcessor.birds.pop_back();
+            }
+            while (audioProcessor.birds.size() < audioProcessor.p.numBirds)
+            {
+                audioProcessor.birds.emplace_back(audioProcessor.birds.size(), &audioProcessor.p, &audioProcessor.birds, &audioProcessor.birdMap, &audioProcessor.birdMapCount);
+            }
+
+            if (audioProcessor.p.updateBirdMapNum)
+            {
+                audioProcessor.p.xNumSpots = int(1.0f / (audioProcessor.p.birdVision));
+                audioProcessor.p.yNumSpots = int(1.0f / (audioProcessor.p.birdVision));
+                if (audioProcessor.birdMap.size() > 0)
+                {
+                    for (int i = 0; i < audioProcessor.birds.size(); i++)
+                    {
+                        audioProcessor.birds[i].disconnect();
+                        audioProcessor.birds[i].xMapIndex = -1;
+                        audioProcessor.birds[i].yMapIndex = -1;
+                    }
+                }
+                audioProcessor.birdMap.clear();
+                audioProcessor.birdMap.resize(audioProcessor.p.yNumSpots);
+
+                audioProcessor.birdMapCount.clear();
+                audioProcessor.birdMapCount.resize(audioProcessor.p.yNumSpots);
+
+                audioProcessor.p.loadImIntoGrid();
+
+                for (int i = 0; i < audioProcessor.p.yNumSpots; i++)
+                {
+                    audioProcessor.birdMap[i].resize(audioProcessor.p.xNumSpots, nullptr);
+                    audioProcessor.birdMapCount[i].resize(audioProcessor.p.xNumSpots, 0);
+                }
+                audioProcessor.p.updateBirdMapNum = false;
             }
         }
         wait(50);
@@ -50,7 +89,6 @@ void NewProjectAudioProcessorEditor::timerCallback()
 {
     // This timer callback is used to repaint the screen
     audioProcessor.getParam()->updateBirdPosition = true;
-    ScopedLock scopedLock(lock);
     repaint();
 }
 
@@ -62,47 +100,7 @@ void NewProjectAudioProcessorEditor::paint (juce::Graphics& g)
     // Paint Background
     g.fillAll(juce::Colours::black);
 
-    
-    // Update the number of birds if the Num Birds Slider has been changed
-    while (audioProcessor.birds.size() > audioProcessor.p.numBirds)
-    {
-        audioProcessor.birds[audioProcessor.birds.size() - 1].disconnect();
-        audioProcessor.birds.pop_back();
-    }
-    while (audioProcessor.birds.size() < audioProcessor.p.numBirds)
-    {
-        audioProcessor.birds.emplace_back(audioProcessor.birds.size(), &audioProcessor.p, &audioProcessor.birds, &audioProcessor.birdMap, &audioProcessor.birdMapCount);
-    }
-
-    if (audioProcessor.p.updateBirdMapNum)
-    {
-        audioProcessor.p.xNumSpots = int(1.0f / (audioProcessor.p.birdVision));
-        audioProcessor.p.yNumSpots = int(1.0f / (audioProcessor.p.birdVision));
-        if (audioProcessor.birdMap.size() > 0)
-        {
-            for (int i = 0; i < audioProcessor.birds.size(); i++)
-            {
-                audioProcessor.birds[i].disconnect();
-                audioProcessor.birds[i].xMapIndex = -1;
-                audioProcessor.birds[i].yMapIndex = -1;
-            }
-        }
-        audioProcessor.birdMap.clear();
-        audioProcessor.birdMap.resize(audioProcessor.p.yNumSpots);
-
-        audioProcessor.birdMapCount.clear();
-        audioProcessor.birdMapCount.resize(audioProcessor.p.yNumSpots);
-
-        audioProcessor.p.loadImIntoGrid();
-
-        for (int i = 0; i < audioProcessor.p.yNumSpots; i++)
-        {
-            audioProcessor.birdMap[i].resize(audioProcessor.p.xNumSpots, nullptr);
-            audioProcessor.birdMapCount[i].resize(audioProcessor.p.xNumSpots, 0);
-        }
-        audioProcessor.p.updateBirdMapNum = false;
-    }
-
+    ScopedLock lk(lock);
     // Iterate through each birds, update the position and paint.
     for (int i = 0; i < audioProcessor.birds.size(); i++)
     {

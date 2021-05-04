@@ -262,8 +262,8 @@ public:
     void updatePosition()
     {
         // Update the bird position
-        const float birdXVel = xVelocitySaved;
-        const float birdYVel = yVelocitySaved;
+        const float birdXVel = xVelocitySaved * 0.5f;
+        const float birdYVel = yVelocitySaved * 0.5f;
         xPos += birdXVel;
         yPos += birdYVel;
 

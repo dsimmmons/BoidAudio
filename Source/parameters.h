@@ -15,8 +15,8 @@ struct parameters
 {
     parameters()
     {
-        defaultVelocity = 0.01f;
-        velocityMax = 0.1f;
+        defaultVelocity = 0.005f;
+        velocityMax = 0.05f;
         avoidWeight = 0.0033f;
         avoidMax = 0.8f;
         matchVelocityWeight = 0.55f;
@@ -28,7 +28,7 @@ struct parameters
     }
 
     float defaultVelocity = 0.01f;
-    float velocityMax = 0.1f;
+    float velocityMax = 0.02f;
     float moddedVelocity = 0.01f;
 
     float avoidWeight = 0.0033f;
