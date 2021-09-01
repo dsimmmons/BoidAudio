@@ -25,6 +25,7 @@ public:
 
         id = i;
         const float randHue = float(rand()) / RAND_MAX;
+        type = (float(rand()) / RAND_MAX) > 0.5f;
         color = juce::Colour(randHue, 1.0f, 1.0f, 1.0f);
 
         setRandomPosition();
@@ -95,6 +96,8 @@ public:
 
         float accumulatedXVelocity = 0.0f;
         float accumulatedYVelocity = 0.0f;
+        int numSame = 0;
+        int numDiff = 0;
         if (xMapIndex > -1 && yMapIndex > -1)
         {
             for (int yInd = -1; yInd < 2; yInd++)
@@ -129,13 +132,46 @@ public:
                                             const float distXVec = xDiff / distance;
                                             const float distYVec = yDiff / distance;
 
+                                            const bool diffType = b->type != type;
                                             // Change velocity to avoid the other bird
-                                            accumulatedXVelocity -= distXVec * avoidBirdVal * (vision - distance) / vision;
-                                            accumulatedYVelocity -= distYVec * avoidBirdVal * (vision - distance) / vision;
+                                            
+                                            if (type)
+                                            {
+                                                if (diffType)
+                                                {
+                                                    accumulatedXVelocity += distXVec * avoidBirdVal * (vision - distance) / vision;
+                                                    accumulatedYVelocity += distYVec * avoidBirdVal * (vision - distance) / vision;
 
-                                            // Change velocity to match the other birds velocity
-                                            accumulatedXVelocity += b->xVelocity * matchBirdVal * (vision - distance) / vision;
-                                            accumulatedYVelocity += b->yVelocity * matchBirdVal * (vision - distance) / vision;
+                                                    accumulatedXVelocity += b->xVelocity * matchBirdVal * (vision - distance) / vision;
+                                                    accumulatedYVelocity += b->yVelocity * matchBirdVal * (vision - distance) / vision;
+                                                }
+                                                else
+                                                {
+                                                    accumulatedXVelocity -= distXVec * avoidBirdVal * (vision - distance) / vision;
+                                                    accumulatedYVelocity -= distYVec * avoidBirdVal * (vision - distance) / vision;
+
+                                                    accumulatedXVelocity += b->xVelocity * matchBirdVal * (vision - distance) / vision;
+                                                    accumulatedYVelocity += b->yVelocity * matchBirdVal * (vision - distance) / vision;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (diffType)
+                                                {
+                                                    accumulatedXVelocity -= distXVec * avoidBirdVal * (vision - distance) / vision * 2;
+                                                    accumulatedYVelocity -= distYVec * avoidBirdVal * (vision - distance) / vision * 2;
+
+      
+                                                }
+                                                else
+                                                {
+                                                    accumulatedXVelocity -= distXVec * avoidBirdVal * (vision - distance) / vision;
+                                                    accumulatedYVelocity -= distYVec * avoidBirdVal * (vision - distance) / vision;
+
+                                                    accumulatedXVelocity += b->xVelocity * matchBirdVal * (vision - distance) / vision;
+                                                    accumulatedYVelocity += b->yVelocity * matchBirdVal * (vision - distance) / vision;
+                                                }
+                                            }
 
 
                                             // Pressing c turns on pretty colors!
@@ -160,8 +196,28 @@ public:
                                             }
 
                                             // Collect the average position for group rule later
-                                            averageX += b->xPos;
-                                            averageY += b->yPos;
+                                            if (type)
+                                            {
+                                                averageX += b->xPos;
+                                                averageY += b->yPos;
+
+                                                if (diffType)
+                                                {
+                                                    averageX += b->xPos;
+                                                    averageY += b->yPos;
+                                                    numBirdsInView++;
+                                                }
+                                            }
+
+                                            if (diffType)
+                                            {
+                                                numDiff++;
+                                            }
+                                            else
+                                            {
+                                                numSame++;
+                                            }
+                  
                                             numBirdsInView++;
                                         }
                                     }
@@ -169,6 +225,7 @@ public:
                                 numBirdsInZone++;
                                 b = b->next;
                             }
+
 
                             if (p->im.isValid() && p->imagePoints.size() == birdMap->size() && p->imagePoints[0].size() == birdMap->at(0).size())
                             {
@@ -181,13 +238,11 @@ public:
                                     const float imgDist = getDistance(imgX, imgY);
 
                                     color = imgC;
-
                                     accumulatedXVelocity += (imgY - yPos) * imgDist * p->imageSlide;
                                     accumulatedYVelocity += (imgX - xPos) * imgDist * p->imageSlide;
 
                                     accumulatedXVelocity += (imgX - xPos) * imgDist * p->imagePull;
                                     accumulatedYVelocity += (imgY - yPos) * imgDist * p->imagePull;
-
                                 }
                             }
                         }
@@ -262,8 +317,8 @@ public:
     void updatePosition()
     {
         // Update the bird position
-        const float birdXVel = xVelocitySaved * 0.5f;
-        const float birdYVel = yVelocitySaved * 0.5f;
+        const float birdXVel = xVelocitySaved;// *0.5f;
+        const float birdYVel = yVelocitySaved;// *0.5f;
         xPos += birdXVel;
         yPos += birdYVel;
 
@@ -344,7 +399,16 @@ public:
 
         if (xRatio > 0.0f && xRatio < 1.0f && yRatio > 0.0f && yRatio < 1.0f)
         {
+            if (type)
+            {
+                color = juce::Colours::red;
+            }
+            else
+            {
+                color = juce::Colours::blue;
+            }
             g.setColour(color);
+            
             //g.drawLine(noseX * width, noseY * height, tailX * width, tailY * height, 1.2f);
             //g.drawEllipse((xPos - p->birdSize * 0.5f) * width, (yPos - p->birdSize * 0.5f) * width, p->birdSize * width, p->birdSize * width, 2.0f);
             g.drawRect((xPos - p->birdSize * 0.5f) * width, (yPos - p->birdSize * 0.5f) * width, p->birdSize * width, p->birdSize * width, 2.0f);
@@ -364,6 +428,8 @@ public:
 
     int xMapIndex = -1;
     int yMapIndex = -1;
+
+    bool type = false;
 
 private:
 

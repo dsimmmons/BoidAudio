@@ -14,7 +14,7 @@ NewProjectAudioProcessorEditor::NewProjectAudioProcessorEditor (NewProjectAudioP
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    startTimerHz(60);
+    startTimerHz(30);
     setWantsKeyboardFocus(true);
 
     addAndMakeVisible(c);
